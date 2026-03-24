@@ -1,0 +1,7 @@
+{
+  "name": "opencli-plugin-slack-notify",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "OpenCLI plugin: Push command results to Slack/Telegram when keywords match",
+  "peerDependencies": { "@jackwener/opencli": ">=1.3.0" }
+}
