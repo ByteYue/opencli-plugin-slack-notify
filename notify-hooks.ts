@@ -72,6 +72,46 @@ function itemLabel(item: unknown): string {
 }
 
 /**
+ * Detect webhook type from URL.
+ */
+function detectWebhookType(url: string): 'slack' | 'feishu' | 'generic' {
+  if (url.includes('feishu.cn') || url.includes('larksuite.com')) return 'feishu';
+  if (url.includes('hooks.slack.com')) return 'slack';
+  return 'generic';
+}
+
+/**
+ * Format a Feishu (Lark) message payload.
+ */
+function formatFeishuMessage(command: string, matches: { item: unknown; matched: string[] }[]): object {
+  const lines = matches.slice(0, 10).map(
+    (m) => `• ${itemLabel(m.item)} (🏷️ ${m.matched.join(', ')})`
+  );
+  const text =
+    `🔔 opencli alert\n` +
+    `Command: ${command}\n` +
+    `Matches: ${matches.length}\n\n` +
+    lines.join('\n') +
+    (matches.length > 10 ? `\n...and ${matches.length - 10} more` : '');
+
+  return {
+    msg_type: 'interactive',
+    card: {
+      header: {
+        title: { tag: 'plain_text', content: `🔔 opencli alert — ${command}` },
+        template: 'blue',
+      },
+      elements: [
+        {
+          tag: 'markdown',
+          content: text,
+        },
+      ],
+    },
+  };
+}
+
+/**
  * Format a Slack message payload.
  */
 function formatSlackMessage(command: string, matches: { item: unknown; matched: string[] }[]): object {
@@ -114,7 +154,7 @@ function formatTelegramMessage(command: string, matches: { item: unknown; matche
 }
 
 /**
- * Send notification via Slack webhook or Telegram bot.
+ * Send notification via Slack/Feishu webhook or Telegram bot.
  */
 async function sendNotification(
   config: NotifyConfig,
@@ -122,7 +162,10 @@ async function sendNotification(
   matches: { item: unknown; matched: string[] }[],
 ): Promise<void> {
   if (config.webhookUrl) {
-    const payload = formatSlackMessage(command, matches);
+    const type = detectWebhookType(config.webhookUrl);
+    const payload = type === 'feishu'
+      ? formatFeishuMessage(command, matches)
+      : formatSlackMessage(command, matches);
     await fetch(config.webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

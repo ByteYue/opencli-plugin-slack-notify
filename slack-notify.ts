@@ -36,16 +36,19 @@ cli({
 
     if (config.webhookUrl) {
       try {
+        const isFeishu = config.webhookUrl.includes('feishu.cn') || config.webhookUrl.includes('larksuite.com');
+        const payload = isFeishu
+          ? { msg_type: 'text', content: { text: '✅ opencli slack-notify test — webhook is working!' } }
+          : { text: '✅ opencli slack-notify test — webhook is working!' };
         const res = await fetch(config.webhookUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: '✅ opencli slack-notify test — webhook is working!',
-          }),
+          body: JSON.stringify(payload),
         });
-        console.log(`Slack: ${res.ok ? '✅ sent' : `❌ ${res.status}`}`);
+        const resText = await res.text();
+        console.log(`Webhook (${isFeishu ? 'Feishu' : 'Slack'}): ${res.ok ? '✅ sent' : `❌ ${res.status}`} ${resText}`);
       } catch (err) {
-        console.log(`Slack: ❌ ${err instanceof Error ? err.message : err}`);
+        console.log(`Webhook: ❌ ${err instanceof Error ? err.message : err}`);
       }
     }
 
